@@ -1,0 +1,18 @@
+"""FastAPI entrypoint for LetterGuard AI."""
+
+from fastapi import FastAPI
+
+from app.api.routes import router as api_router
+
+app = FastAPI(
+    title="LetterGuard AI API",
+    description="Agentic backend for compensation letter validation workflows.",
+    version="0.1.0",
+)
+
+app.include_router(api_router, prefix="/api")
+
+
+@app.get("/health", tags=["health"])
+def health_check() -> dict[str, str]:
+    return {"status": "ok", "service": "letterguard-ai"}
