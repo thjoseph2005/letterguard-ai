@@ -142,3 +142,61 @@ Example single-file response:
 ```bash
 pytest tests/test_employee_data_service.py tests/test_data_validation_agent.py -q
 ```
+
+## Letter Type Classification + Prototype Comparison (Milestone 5)
+- Deterministic, local-only logic.
+- Inputs:
+  - Extracted generated-letter JSON: `sample_data/extracted/generated_letters/*.json`
+  - Extracted prototype JSON: `sample_data/extracted/prototypes/*.json`
+- No Azure and no LLM calls in this milestone.
+
+### Classification Rules
+Keyword matching only:
+- `promotion`: `promotion`, `new role`, `new title`, `congratulations on your promotion`
+- `base_pay_increase`: `base pay`, `salary increase`, `annual base salary`, `increase in your base pay`
+- `annual_incentive_award`: `annual incentive`, `bonus`, `incentive award`, `awarded`
+
+If no clear keyword signal exists, letter type is `unknown` with low confidence.
+
+### Prototype Comparison
+1. Classify generated letter from extracted `full_text`.
+2. Map letter type to a prototype extraction file:
+   - `promotion -> promotion_prototype.pdf.json`
+   - `base_pay_increase -> salary_increase_prototype.pdf.json`
+   - `annual_incentive_award -> bonus_prototype.pdf.json`
+3. Compare generated text with prototype expected sections.
+4. Ignore variable content patterns where possible (employee IDs, dollar amounts, common date formats).
+5. Return `pass`, `fail`, or `needs_review`.
+
+### Milestone 5 Endpoints
+- `GET /api/classify/generated-letter/{file_name}`
+- `GET /api/compare/generated-letter/{file_name}`
+- `GET /api/compare/generated-letters`
+
+Example classify response:
+```json
+{
+  "file_name": "E001_letter.pdf",
+  "letter_type": "promotion",
+  "confidence": 0.5,
+  "matched_keywords": ["promotion", "new role"]
+}
+```
+
+Example compare response:
+```json
+{
+  "status": "pass",
+  "file_name": "E001_letter.pdf",
+  "detected_letter_type": "promotion",
+  "prototype_file": "promotion_prototype.pdf.json",
+  "missing_sections": [],
+  "unexpected_sections": [],
+  "summary": "Prototype comparison passed."
+}
+```
+
+### Test Milestone 5
+```bash
+pytest tests/test_prototype_comparison_service.py tests/test_template_agent.py -q
+```

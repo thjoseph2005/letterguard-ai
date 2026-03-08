@@ -5,9 +5,11 @@ from pathlib import Path
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from app.agents.data_validation_agent import validate_generated_letter_against_employee
+from app.agents.template_agent import review_generated_letter_against_prototype
 from app.models.extraction import ExtractionSummaryResponse
 from app.models.letter import LetterValidationRequest, LetterValidationResponse
 from app.services.file_service import save_uploaded_file, validate_file_type
+from app.services.prototype_comparison_service import classify_letter_type_from_text
 from app.services.pdf_extraction_service import (
     extract_pdf_metadata,
     extract_pdf_text,
@@ -141,6 +143,76 @@ def validate_generated_letters() -> dict:
                 file_name=file_name,
                 extraction_json_path=str(json_file),
                 employee_csv_path=str(employee_csv_path),
+            )
+        )
+
+    status_counts = {"pass": 0, "fail": 0, "needs_review": 0}
+    for result in results:
+        status = result.get("status")
+        if status in status_counts:
+            status_counts[status] += 1
+
+    return {
+        "total": len(results),
+        "pass": status_counts["pass"],
+        "fail": status_counts["fail"],
+        "needs_review": status_counts["needs_review"],
+        "results": results,
+    }
+
+
+def _load_full_text_from_extraction_json(json_path: Path) -> str:
+    import json
+
+    payload = json.loads(json_path.read_text(encoding="utf-8"))
+    extraction = payload.get("extraction", {})
+    if isinstance(extraction, dict) and isinstance(extraction.get("full_text"), str):
+        return extraction["full_text"]
+    if isinstance(payload.get("full_text"), str):
+        return payload["full_text"]
+    return ""
+
+
+@router.get("/classify/generated-letter/{file_name}")
+def classify_generated_letter(file_name: str) -> dict:
+    safe_file_name = Path(file_name).name
+    extraction_json_path = Path("sample_data/extracted/generated_letters") / f"{safe_file_name}.json"
+    if not extraction_json_path.exists():
+        raise HTTPException(status_code=404, detail=f"Extraction JSON not found: {extraction_json_path}")
+
+    full_text = _load_full_text_from_extraction_json(extraction_json_path)
+    classification = classify_letter_type_from_text(full_text)
+    return {"file_name": safe_file_name, **classification}
+
+
+@router.get("/compare/generated-letter/{file_name}")
+def compare_generated_letter(file_name: str) -> dict:
+    safe_file_name = Path(file_name).name
+    generated_extraction_json_path = Path("sample_data/extracted/generated_letters") / f"{safe_file_name}.json"
+    if not generated_extraction_json_path.exists():
+        raise HTTPException(status_code=404, detail=f"Extraction JSON not found: {generated_extraction_json_path}")
+
+    return review_generated_letter_against_prototype(
+        file_name=safe_file_name,
+        generated_extraction_json_path=str(generated_extraction_json_path),
+        prototype_extraction_dir="sample_data/extracted/prototypes",
+    )
+
+
+@router.get("/compare/generated-letters")
+def compare_generated_letters() -> dict:
+    extraction_dir = Path("sample_data/extracted/generated_letters")
+    if not extraction_dir.exists():
+        raise HTTPException(status_code=404, detail="Generated letter extraction directory not found.")
+
+    results: list[dict] = []
+    for json_file in sorted(extraction_dir.glob("*.json")):
+        file_name = json_file.name.removesuffix(".json")
+        results.append(
+            review_generated_letter_against_prototype(
+                file_name=file_name,
+                generated_extraction_json_path=str(json_file),
+                prototype_extraction_dir="sample_data/extracted/prototypes",
             )
         )
 
