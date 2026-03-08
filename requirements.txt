@@ -6,3 +6,4 @@ pymupdf
 pillow
 python-dotenv
 azure-storage-blob
+python-multipart

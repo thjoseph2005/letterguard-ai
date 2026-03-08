@@ -1,0 +1,11 @@
+employee_id,name,department,title,base_pay,annual_incentive
+E001,John Smith,Wealth Management,Advisor,120000,20000
+E002,Alice Johnson,Wealth Management,Senior Advisor,150000,25000
+E003,Robert Brown,Investment Banking,Associate,110000,15000
+E004,Emily Davis,Investment Banking,VP,180000,40000
+E005,Michael Wilson,Asset Management,Portfolio Manager,140000,22000
+E006,Sarah Miller,Asset Management,Senior Analyst,100000,12000
+E007,David Taylor,Wealth Management,Advisor,125000,21000
+E008,Linda Anderson,Investment Banking,Director,200000,60000
+E009,James Thomas,Asset Management,Analyst,95000,10000
+E010,Karen Jackson,Wealth Management,Client Associate,80000,8000

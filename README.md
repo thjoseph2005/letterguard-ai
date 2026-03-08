@@ -42,8 +42,51 @@ uvicorn app.main:app --reload
 
 Open API docs at `http://127.0.0.1:8000/docs`.
 
-## Next Build Steps
-- Replace stubs in `app/services/` with Azure SDK clients.
-- Add policy/rule checks in `app/agents/letter_review_agent.py`.
-- Expand LangGraph with multi-step review + remediation nodes.
-- Add integration tests for API and service adapters.
+## Local PDF Extraction (Milestone 3)
+- Uses **PyMuPDF** (`fitz`) for local parsing only.
+- Prototype PDFs are read from `sample_data/prototypes/`.
+- Generated-letter PDFs are read from `sample_data/generated_letters/`.
+- Extraction JSON is saved to:
+  - `sample_data/extracted/prototypes/`
+  - `sample_data/extracted/generated_letters/`
+
+### Extraction Endpoints
+- `GET /api/extract/prototype/{file_name}`
+- `GET /api/extract/generated-letter/{file_name}`
+
+Both return:
+```json
+{
+  "status": "success",
+  "file_name": "sample.pdf",
+  "page_count": 2,
+  "json_output_path": "sample_data/extracted/generated_letters/sample.pdf.json"
+}
+```
+
+### How It Works
+1. Endpoint loads the requested local PDF file.
+2. `pdf_extraction_service` extracts:
+   - page text
+   - text blocks per page
+   - document-level `full_text`
+   - basic PDF metadata
+3. Combined extraction + metadata JSON is written to the extracted folder.
+
+### Testing Extraction Endpoints
+1. Start server:
+```bash
+uvicorn app.main:app --reload
+```
+2. Upload or place a PDF in:
+   - `sample_data/prototypes/` or
+   - `sample_data/generated_letters/`
+3. Call endpoint, for example:
+```bash
+curl "http://127.0.0.1:8000/api/extract/prototype/example.pdf"
+```
+
+### Run Tests
+```bash
+pytest tests/test_pdf_extraction.py -q
+```
