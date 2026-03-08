@@ -9,11 +9,15 @@ from app.agents.template_agent import review_generated_letter_against_prototype
 from app.models.extraction import ExtractionSummaryResponse
 from app.models.letter import LetterValidationRequest, LetterValidationResponse
 from app.services.file_service import save_uploaded_file, validate_file_type
-from app.services.prototype_comparison_service import classify_letter_type_from_text
 from app.services.pdf_extraction_service import (
     extract_pdf_metadata,
     extract_pdf_text,
     save_extraction_result,
+)
+from app.services.prototype_comparison_service import classify_letter_type_from_text
+from app.services.qa_orchestration_service import (
+    run_letterguard_workflow_for_all_generated_letters,
+    run_letterguard_workflow_for_file,
 )
 from app.workflows.letter_review_graph import run_letter_review
 
@@ -229,3 +233,13 @@ def compare_generated_letters() -> dict:
         "needs_review": status_counts["needs_review"],
         "results": results,
     }
+
+
+@router.get("/qa/run/{file_name}")
+def qa_run_single(file_name: str) -> dict:
+    return run_letterguard_workflow_for_file(Path(file_name).name)
+
+
+@router.get("/qa/run-all")
+def qa_run_all() -> dict:
+    return run_letterguard_workflow_for_all_generated_letters()

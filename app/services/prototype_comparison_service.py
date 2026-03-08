@@ -33,6 +33,12 @@ PROTOTYPE_MAP: dict[str, str] = {
     "annual_incentive_award": "bonus_prototype.pdf.json",
 }
 
+STRONG_CROSS_TYPE_KEYWORDS: dict[str, list[str]] = {
+    "promotion": ["congratulations on your promotion", "new role", "new title"],
+    "base_pay_increase": ["salary increase", "annual base salary", "increase in your base pay"],
+    "annual_incentive_award": ["incentive award", "awarded a bonus"],
+}
+
 
 def _normalize_text(value: str) -> str:
     return re.sub(r"\s+", " ", (value or "").strip().lower())
@@ -131,7 +137,7 @@ def compare_generated_text_to_prototype(
     missing_sections = [section for section in required_sections if section not in normalized_generated]
 
     unexpected_sections: list[str] = []
-    for other_type, keywords in LETTER_TYPE_KEYWORDS.items():
+    for other_type, keywords in STRONG_CROSS_TYPE_KEYWORDS.items():
         if other_type == letter_type:
             continue
         for keyword in keywords:

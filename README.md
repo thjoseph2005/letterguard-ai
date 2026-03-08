@@ -200,3 +200,61 @@ Example compare response:
 ```bash
 pytest tests/test_prototype_comparison_service.py tests/test_template_agent.py -q
 ```
+
+## Multi-Agent QA Orchestration (Milestone 6)
+
+Milestone 6 introduces a local deterministic LangGraph workflow that runs all major QA checks end-to-end for each generated letter and returns a final decision:
+- `PASS`
+- `FAIL`
+- `NEEDS_REVIEW`
+
+### Agent Roles
+- `planner_agent`: builds required paths and checks input availability
+- `data_validation_agent`: validates extracted letter fields against employee CSV
+- `template_agent`: classifies letter type and compares against mapped prototype
+- `logo_agent`: validates expected department logo presence (local placeholder logic)
+- `decision_agent`: combines component outputs into final decision
+- `review_router_agent`: produces manual-review summary when needed
+
+### Workflow Sequence
+1. Planner node
+2. Data validation node
+3. Template comparison node
+4. Logo validation node
+5. Decision node
+6. Conditional route:
+   - `NEEDS_REVIEW` -> Review router node
+   - otherwise -> End
+
+### QA Endpoints
+- `GET /api/qa/run/{file_name}`
+- `GET /api/qa/run-all`
+
+`/api/qa/run/{file_name}` response shape:
+```json
+{
+  "final_status": "PASS|FAIL|NEEDS_REVIEW",
+  "file_name": "E001_letter.pdf",
+  "reasons": [],
+  "component_status": {
+    "planner": "pass",
+    "data_validation": "pass",
+    "template_comparison": "pass",
+    "logo_validation": "pass"
+  },
+  "review": null,
+  "result_json_path": "sample_data/qa_results/E001_letter.pdf.result.json",
+  "summary": "Letter passed all current QA checks."
+}
+```
+
+### Result Persistence
+- Single run result:
+  - `sample_data/qa_results/{file_name}.result.json`
+- Batch run summary:
+  - `sample_data/qa_results/batch_summary.json`
+
+### Run Milestone 6 Tests
+```bash
+pytest tests/test_decision_agent.py tests/test_qa_workflow.py -q
+```
