@@ -6,8 +6,10 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from app.agents.data_validation_agent import validate_generated_letter_against_employee
 from app.agents.template_agent import review_generated_letter_against_prototype
+from app.models.chat import ChatRequest, ChatResponse
 from app.models.extraction import ExtractionSummaryResponse
 from app.models.letter import LetterValidationRequest, LetterValidationResponse
+from app.services.chat_command_service import execute_chat_command, parse_chat_instruction
 from app.services.file_service import save_uploaded_file, validate_file_type
 from app.services.pdf_extraction_service import (
     extract_pdf_metadata,
@@ -243,3 +245,10 @@ def qa_run_single(file_name: str) -> dict:
 @router.get("/qa/run-all")
 def qa_run_all() -> dict:
     return run_letterguard_workflow_for_all_generated_letters()
+
+
+@router.post("/chat", response_model=ChatResponse)
+def chat_endpoint(payload: ChatRequest) -> ChatResponse:
+    command = parse_chat_instruction(payload.message)
+    result = execute_chat_command(command)
+    return ChatResponse(**result)

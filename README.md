@@ -258,3 +258,58 @@ Milestone 6 introduces a local deterministic LangGraph workflow that runs all ma
 ```bash
 pytest tests/test_decision_agent.py tests/test_qa_workflow.py -q
 ```
+
+## Chat Interface (Deterministic, Local)
+
+Milestone chat support adds a command-style interface that interprets user instructions and runs existing QA services/workflows.
+
+### Chat Endpoint
+- `POST /api/chat`
+
+Request:
+```json
+{
+  "message": "Run quality check for E001_letter.pdf"
+}
+```
+
+Response:
+```json
+{
+  "status": "success",
+  "message": "QA completed for E001_letter.pdf: PASS.",
+  "intent": "run_single",
+  "data": {
+    "final_status": "PASS",
+    "file_name": "E001_letter.pdf"
+  }
+}
+```
+
+### Supported Commands
+- `Run quality check for E001_letter.pdf`
+- `Run QA for all generated letters`
+- `Check John Smith's letter`
+- `Explain result for E001_letter.pdf`
+- `Why did E003_letter.pdf fail?`
+
+### Intent Routing
+- `run_single`: runs single-file QA workflow
+- `run_all`: runs batch QA workflow
+- `explain_result`: explains saved QA result JSON for a file
+- `unknown`: returns help text with supported command formats
+
+### Run Streamlit Chat UI
+```bash
+streamlit run ui/streamlit_app.py
+```
+
+The UI displays:
+- user-friendly response text
+- parsed intent/status
+- expandable structured JSON payload
+
+### Chat Tests
+```bash
+pytest tests/test_chat_command_service.py tests/test_chat_endpoint.py -q
+```
