@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+langgraph
+sqlalchemy
+pymupdf
+pillow
+python-dotenv
+azure-storage-blob
