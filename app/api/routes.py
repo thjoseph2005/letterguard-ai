@@ -9,8 +9,10 @@ from app.agents.template_agent import review_generated_letter_against_prototype
 from app.models.chat import ChatRequest, ChatResponse
 from app.models.extraction import ExtractionSummaryResponse
 from app.models.letter import LetterValidationRequest, LetterValidationResponse
+from app.models.qa_models import QAAnalyzeRequest, QAResult
 from app.services.chat_command_service import execute_chat_command, parse_chat_instruction
 from app.services.file_service import save_uploaded_file, validate_file_type
+from app.services.llm.azure_openai_service import AzureOpenAIService
 from app.services.pdf_extraction_service import (
     extract_pdf_metadata,
     extract_pdf_text,
@@ -24,6 +26,7 @@ from app.services.qa_orchestration_service import (
 from app.workflows.letter_review_graph import run_letter_review
 
 router = APIRouter(tags=["letterguard"])
+llm_service = AzureOpenAIService()
 
 
 @router.get("/ping")
@@ -252,3 +255,18 @@ def chat_endpoint(payload: ChatRequest) -> ChatResponse:
     command = parse_chat_instruction(payload.message)
     result = execute_chat_command(command)
     return ChatResponse(**result)
+
+
+@router.post("/qa/analyze", response_model=QAResult)
+async def qa_analyze(payload: QAAnalyzeRequest) -> QAResult:
+    try:
+        result = await llm_service.analyze_document(
+            instruction=payload.instruction,
+            document_text=payload.document_text,
+            metadata=payload.metadata,
+        )
+        return QAResult(**result)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc

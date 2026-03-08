@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal, cast
+from typing import Any, Literal, cast
 
 from langgraph.graph import END, START, StateGraph
 
@@ -12,6 +12,7 @@ from app.agents.logo_agent import validate_logo_for_letter
 from app.agents.planner_agent import build_plan
 from app.agents.review_router_agent import build_review_summary
 from app.agents.template_agent import review_generated_letter_against_prototype
+from app.workflows.nodes.llm_review_node import llm_review_node
 from app.workflows.state import QAWorkflowState
 
 
@@ -33,7 +34,7 @@ def planner_node(state: QAWorkflowState) -> QAWorkflowState:
 
 def data_validation_node(state: QAWorkflowState) -> QAWorkflowState:
     planner_status = str(state.get("planner_result", {}).get("status", "needs_review")).lower()
-    if planner_status == "fail":
+    if planner_status != "pass":
         return cast(
             QAWorkflowState,
             {
@@ -54,6 +55,19 @@ def data_validation_node(state: QAWorkflowState) -> QAWorkflowState:
 
 
 def template_node(state: QAWorkflowState) -> QAWorkflowState:
+    planner_status = str(state.get("planner_result", {}).get("status", "needs_review")).lower()
+    if planner_status != "pass":
+        return cast(
+            QAWorkflowState,
+            {
+                **state,
+                "template_result": {
+                    "status": "needs_review",
+                    "summary": "Planner did not pass; template comparison skipped.",
+                },
+            },
+        )
+
     result = review_generated_letter_against_prototype(
         file_name=state.get("file_name", ""),
         generated_extraction_json_path=state.get("generated_extraction_json_path", ""),
@@ -63,6 +77,21 @@ def template_node(state: QAWorkflowState) -> QAWorkflowState:
 
 
 def logo_node(state: QAWorkflowState) -> QAWorkflowState:
+    planner_status = str(state.get("planner_result", {}).get("status", "needs_review")).lower()
+    if planner_status != "pass":
+        return cast(
+            QAWorkflowState,
+            {
+                **state,
+                "logo_result": {
+                    "status": "needs_review",
+                    "summary": "Planner did not pass; logo validation skipped.",
+                    "issues": [],
+                    "expected_logo": "",
+                },
+            },
+        )
+
     result = validate_logo_for_letter(
         generated_extraction_json_path=state.get("generated_extraction_json_path", ""),
         logo_dir=state.get("logo_dir", "sample_data/logos"),
@@ -95,6 +124,7 @@ def review_node(state: QAWorkflowState) -> QAWorkflowState:
 def build_qa_graph():
     graph = StateGraph(QAWorkflowState)
     graph.add_node("planner", planner_node)
+    graph.add_node("llm_review", llm_review_node)
     graph.add_node("data_validation", data_validation_node)
     graph.add_node("template", template_node)
     graph.add_node("logo", logo_node)
@@ -102,7 +132,8 @@ def build_qa_graph():
     graph.add_node("review", review_node)
 
     graph.add_edge(START, "planner")
-    graph.add_edge("planner", "data_validation")
+    graph.add_edge("planner", "llm_review")
+    graph.add_edge("llm_review", "data_validation")
     graph.add_edge("data_validation", "template")
     graph.add_edge("template", "logo")
     graph.add_edge("logo", "decision")
@@ -115,7 +146,7 @@ def build_qa_graph():
 qa_compiled_graph = build_qa_graph()
 
 
-def run_qa_workflow(file_name: str, overrides: dict[str, str] | None = None) -> QAWorkflowState:
+def run_qa_workflow(file_name: str, overrides: dict[str, Any] | None = None) -> QAWorkflowState:
     overrides = overrides or {}
     initial_state: QAWorkflowState = {
         "file_name": file_name,
@@ -123,6 +154,9 @@ def run_qa_workflow(file_name: str, overrides: dict[str, str] | None = None) -> 
         "employee_csv_path": overrides.get("employee_csv_path", ""),
         "prototype_extraction_dir": overrides.get("prototype_extraction_dir", ""),
         "logo_dir": overrides.get("logo_dir", ""),
+        "instruction": overrides.get("instruction", ""),
+        "document_text": overrides.get("document_text", ""),
+        "metadata": overrides.get("metadata", {}),
         "errors": [],
     }
     return qa_compiled_graph.invoke(initial_state)

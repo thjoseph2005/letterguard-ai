@@ -8,3 +8,4 @@ python-dotenv
 azure-storage-blob
 python-multipart
 streamlit
+openai

@@ -17,7 +17,11 @@ class QAWorkflowState(TypedDict, total=False):
     employee_csv_path: str
     prototype_extraction_dir: str
     logo_dir: str
+    instruction: str
+    document_text: str
+    metadata: dict[str, Any]
     planner_result: dict[str, Any]
+    qa_result: dict[str, Any]
     data_validation_result: dict[str, Any]
     template_result: dict[str, Any]
     logo_result: dict[str, Any]

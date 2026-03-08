@@ -313,3 +313,44 @@ The UI displays:
 ```bash
 pytest tests/test_chat_command_service.py tests/test_chat_endpoint.py -q
 ```
+
+## Azure OpenAI QA Analysis (Milestone 8)
+
+This milestone adds an Azure OpenAI-backed QA analysis endpoint and workflow node.
+
+### Configure Azure OpenAI
+Set these environment variables (see `.env.example`):
+- `AZURE_OPENAI_ENDPOINT`
+- `AZURE_OPENAI_API_KEY`
+- `AZURE_OPENAI_API_VERSION`
+- `AZURE_OPENAI_DEPLOYMENT`
+
+### API Endpoint
+- `POST /api/qa/analyze`
+
+Request body:
+```json
+{
+  "instruction": "Review this letter for completeness and consistency.",
+  "document_text": "Your extracted document text here",
+  "metadata": {"file_name": "E001_letter.pdf"}
+}
+```
+
+Response fields:
+- `overall_status`
+- `summary`
+- `issues`
+- `recommendations`
+- `confidence`
+
+### Example curl
+```bash
+curl -X POST "http://127.0.0.1:8000/api/qa/analyze" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "instruction": "Check for missing sections and contradictions.",
+    "document_text": "Employee Letter ...",
+    "metadata": {"source": "generated_letter"}
+  }'
+```
