@@ -90,3 +90,55 @@ curl "http://127.0.0.1:8000/api/extract/prototype/example.pdf"
 ```bash
 pytest tests/test_pdf_extraction.py -q
 ```
+
+## Employee Data Validation (Milestone 4)
+- Validation is deterministic and local-only.
+- Inputs:
+  - Employee CSV: `sample_data/employees/employees.csv`
+  - Generated-letter extraction JSON: `sample_data/extracted/generated_letters/*.json`
+- No Azure or LLM calls are used in this milestone.
+
+### Matching Logic
+1. Read `full_text` from extracted generated-letter JSON.
+2. Try to match employee by `employee_id` (`E###`) from file name or text.
+3. If no ID match, try employee name match from CSV.
+4. Validate required fields:
+   - `employee_id`
+   - `name`
+   - `department`
+   - `title`
+   - `base_pay`
+   - `annual_incentive`
+
+Decision outcomes:
+- `pass`: all required fields found
+- `fail`: employee matched, but one or more fields missing/mismatched
+- `needs_review`: no confident employee match
+
+### Validation Endpoints
+- `GET /api/validate/generated-letter/{file_name}`
+- `GET /api/validate/generated-letters`
+
+Example single-file response:
+```json
+{
+  "status": "pass",
+  "file_name": "E001_letter.pdf",
+  "employee_id": "E001",
+  "matched_employee_name": "John Smith",
+  "field_results": {
+    "name": {"expected": "John Smith", "found": true},
+    "department": {"expected": "Wealth Management", "found": true},
+    "title": {"expected": "Advisor", "found": true},
+    "base_pay": {"expected": 120000, "found": true},
+    "annual_incentive": {"expected": 20000, "found": true}
+  },
+  "issues": [],
+  "summary": "All expected employee fields matched."
+}
+```
+
+### Test Milestone 4
+```bash
+pytest tests/test_employee_data_service.py tests/test_data_validation_agent.py -q
+```

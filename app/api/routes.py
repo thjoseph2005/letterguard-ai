@@ -4,6 +4,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
+from app.agents.data_validation_agent import validate_generated_letter_against_employee
 from app.models.extraction import ExtractionSummaryResponse
 from app.models.letter import LetterValidationRequest, LetterValidationResponse
 from app.services.file_service import save_uploaded_file, validate_file_type
@@ -99,3 +100,60 @@ def extract_generated_letter(file_name: str) -> ExtractionSummaryResponse:
     pdf_path = Path("sample_data/generated_letters") / Path(file_name).name
     output_dir = Path("sample_data/extracted/generated_letters")
     return _extract_and_save(pdf_path, output_dir)
+
+
+@router.get("/validate/generated-letter/{file_name}")
+def validate_generated_letter(file_name: str) -> dict:
+    safe_file_name = Path(file_name).name
+    extraction_json_path = Path("sample_data/extracted/generated_letters") / f"{safe_file_name}.json"
+    employee_csv_path = Path("sample_data/employees/employees.csv")
+
+    if not extraction_json_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Extraction JSON not found for {safe_file_name}. Expected: {extraction_json_path}",
+        )
+    if not employee_csv_path.exists():
+        raise HTTPException(status_code=404, detail="Employee CSV file not found.")
+
+    return validate_generated_letter_against_employee(
+        file_name=safe_file_name,
+        extraction_json_path=str(extraction_json_path),
+        employee_csv_path=str(employee_csv_path),
+    )
+
+
+@router.get("/validate/generated-letters")
+def validate_generated_letters() -> dict:
+    extraction_dir = Path("sample_data/extracted/generated_letters")
+    employee_csv_path = Path("sample_data/employees/employees.csv")
+
+    if not extraction_dir.exists():
+        raise HTTPException(status_code=404, detail="Generated letter extraction directory not found.")
+    if not employee_csv_path.exists():
+        raise HTTPException(status_code=404, detail="Employee CSV file not found.")
+
+    results: list[dict] = []
+    for json_file in sorted(extraction_dir.glob("*.json")):
+        file_name = json_file.name.removesuffix(".json")
+        results.append(
+            validate_generated_letter_against_employee(
+                file_name=file_name,
+                extraction_json_path=str(json_file),
+                employee_csv_path=str(employee_csv_path),
+            )
+        )
+
+    status_counts = {"pass": 0, "fail": 0, "needs_review": 0}
+    for result in results:
+        status = result.get("status")
+        if status in status_counts:
+            status_counts[status] += 1
+
+    return {
+        "total": len(results),
+        "pass": status_counts["pass"],
+        "fail": status_counts["fail"],
+        "needs_review": status_counts["needs_review"],
+        "results": results,
+    }
