@@ -1,0 +1,109 @@
+{
+  "metadata": {
+    "file_name": "E003_letter.pdf",
+    "page_count": 1,
+    "metadata": {
+      "format": "PDF 1.3",
+      "title": "untitled",
+      "author": "anonymous",
+      "subject": "unspecified",
+      "keywords": "",
+      "creator": "anonymous",
+      "producer": "ReportLab PDF Library - (opensource)",
+      "creationDate": "D:20260308002734-05'00'",
+      "modDate": "D:20260308002734-05'00'",
+      "trapped": "",
+      "encryption": null
+    }
+  },
+  "extraction": {
+    "file_name": "E003_letter.pdf",
+    "page_count": 1,
+    "full_text": "Employee Letter\nName: Robert Brown\nDepartment: Investment Banking\nTitle: Associate\nBase Pay: $110000\nAnnual Incentive: $15000\nThank you for your contributions.",
+    "pages": [
+      {
+        "page_number": 1,
+        "text": "Employee Letter\nName: Robert Brown\nDepartment: Investment Banking\nTitle: Associate\nBase Pay: $110000\nAnnual Incentive: $15000\nThank you for your contributions.\n",
+        "blocks": [
+          {
+            "bbox": [
+              100.0,
+              29.099998474121094,
+              187.37197875976562,
+              45.5880012512207
+            ],
+            "text": "Employee Letter\n",
+            "block_no": 0,
+            "block_type": 0
+          },
+          {
+            "bbox": [
+              100.0,
+              59.099998474121094,
+              212.031982421875,
+              75.58799743652344
+            ],
+            "text": "Name: Robert Brown\n",
+            "block_no": 1,
+            "block_type": 0
+          },
+          {
+            "bbox": [
+              100.0,
+              79.0999984741211,
+              274.74395751953125,
+              95.58799743652344
+            ],
+            "text": "Department: Investment Banking\n",
+            "block_no": 2,
+            "block_type": 0
+          },
+          {
+            "bbox": [
+              100.0,
+              99.0999984741211,
+              181.3599853515625,
+              115.58799743652344
+            ],
+            "text": "Title: Associate\n",
+            "block_no": 3,
+            "block_type": 0
+          },
+          {
+            "bbox": [
+              100.0,
+              139.10000610351562,
+              204.7359619140625,
+              155.58799743652344
+            ],
+            "text": "Base Pay: $110000\n",
+            "block_no": 4,
+            "block_type": 0
+          },
+          {
+            "bbox": [
+              100.0,
+              159.10000610351562,
+              235.41995239257812,
+              175.58799743652344
+            ],
+            "text": "Annual Incentive: $15000\n",
+            "block_no": 5,
+            "block_type": 0
+          },
+          {
+            "bbox": [
+              100.0,
+              199.10000610351562,
+              274.74395751953125,
+              215.58799743652344
+            ],
+            "text": "Thank you for your contributions.\n",
+            "block_no": 6,
+            "block_type": 0
+          }
+        ]
+      }
+    ]
+  }
+}

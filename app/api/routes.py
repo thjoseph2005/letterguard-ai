@@ -6,10 +6,11 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from app.agents.data_validation_agent import validate_generated_letter_against_employee
 from app.agents.template_agent import review_generated_letter_against_prototype
-from app.models.chat import ChatRequest, ChatResponse
+from app.models.chat import ChatAskResponse, ChatRequest, ChatResponse
 from app.models.extraction import ExtractionSummaryResponse
 from app.models.letter import LetterValidationRequest, LetterValidationResponse
 from app.models.qa_models import QAAnalyzeRequest, QAResult
+from app.services.chat_orchestration_service import run_chat_request
 from app.services.chat_command_service import execute_chat_command, parse_chat_instruction
 from app.services.file_service import save_uploaded_file, validate_file_type
 from app.services.llm.azure_openai_service import AzureOpenAIService
@@ -255,6 +256,12 @@ def chat_endpoint(payload: ChatRequest) -> ChatResponse:
     command = parse_chat_instruction(payload.message)
     result = execute_chat_command(command)
     return ChatResponse(**result)
+
+
+@router.post("/chat/ask", response_model=ChatAskResponse)
+def chat_ask_endpoint(payload: ChatRequest) -> ChatAskResponse:
+    result = run_chat_request(payload.message)
+    return ChatAskResponse(**result)
 
 
 @router.post("/qa/analyze", response_model=QAResult)

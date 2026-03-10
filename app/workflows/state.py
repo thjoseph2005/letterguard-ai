@@ -31,3 +31,22 @@ class QAWorkflowState(TypedDict, total=False):
     decision_result: dict[str, Any]
     review_result: dict[str, Any] | None
     errors: list[str]
+
+
+class ChatWorkflowState(TypedDict, total=False):
+    user_message: str
+    intent: dict[str, Any]
+    request_type: str
+    document_type: str
+    reference_data: dict[str, Any]
+    employees: list[dict[str, str]]
+    documents: list[dict[str, Any]]
+    matched_employees: list[dict[str, str]]
+    prototype_mapping: dict[str, str]
+    logo_mappings: dict[str, str]
+    validation_results: list[dict[str, Any]]
+    answer: str
+    results: list[dict[str, Any]]
+    status: str
+    error: str
+    notes: list[str]

@@ -48,3 +48,22 @@ def test_chat_endpoint_unknown(monkeypatch) -> None:
     body = response.json()
     assert body["status"] == "error"
     assert body["intent"] == "unknown"
+
+
+def test_chat_ask_endpoint(monkeypatch) -> None:
+    def fake_run_chat_request(message: str) -> dict:
+        return {
+            "answer": "I found 1 matching promotion letter and it passed validation.",
+            "results": [{"employee_name": "John Smith", "status": "passed"}],
+            "status": "completed",
+        }
+
+    monkeypatch.setattr("app.api.routes.run_chat_request", fake_run_chat_request)
+
+    response = client.post("/api/chat/ask", json={"message": "List promotion letters"})
+    assert response.status_code == 200
+    assert response.json() == {
+        "answer": "I found 1 matching promotion letter and it passed validation.",
+        "results": [{"employee_name": "John Smith", "status": "passed"}],
+        "status": "completed",
+    }
