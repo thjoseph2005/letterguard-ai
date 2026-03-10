@@ -103,6 +103,16 @@ def test_run_chat_workflow_validate(monkeypatch) -> None:
             "issues": [],
         },
     )
+    monkeypatch.setattr(
+        chat_workflow,
+        "reason_about_prototype_match",
+        lambda **kwargs: {
+            "status": "aligned",
+            "summary": "The generated letter is semantically aligned with the prototype.",
+            "issues": [],
+            "severity": "low",
+        },
+    )
 
     state = chat_workflow.run_chat_workflow(
         "List all employees with promotion letters and check whether their generated letters match the prototype"
@@ -110,4 +120,6 @@ def test_run_chat_workflow_validate(monkeypatch) -> None:
 
     assert state["status"] == "completed"
     assert state["results"][0]["status"] == "passed"
+    assert state["results"][0]["prototype_reasoning"]["status"] == "aligned"
+    assert state["results"][0]["semantic_comparison_summary"] == "The generated letter is semantically aligned with the prototype."
     assert "1 passed" in state["answer"]

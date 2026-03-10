@@ -243,6 +243,7 @@ Validation result:
         request_type = str(summary_input.get("request_type", "list_only"))
         preview_names = [str(item) for item in summary_input.get("preview_names", []) if item]
         status_preview = [str(item) for item in summary_input.get("status_preview", []) if item]
+        prototype_reasoning_preview = [str(item) for item in summary_input.get("prototype_reasoning_preview", []) if item]
 
         if total == 0:
             return f"I could not find any matching {document_type} in the local sample data."
@@ -254,10 +255,23 @@ Validation result:
             return f"I found {total} matching {document_type} in the local sample data."
         if status_preview:
             preview = "; ".join(status_preview[:2])
+            if prototype_reasoning_preview:
+                return (
+                    f"I found {total} matching {document_type}. "
+                    f"{passed} passed, {failed} failed, and {needs_review} need review. "
+                    f"Top semantic finding: {prototype_reasoning_preview[0]} "
+                    f"For example: {preview}."
+                )
             return (
                 f"I found {total} matching {document_type}. "
                 f"{passed} passed, {failed} failed, and {needs_review} need review. "
                 f"For example: {preview}."
+            )
+        if prototype_reasoning_preview:
+            return (
+                f"I found {total} matching {document_type}. "
+                f"{passed} passed, {failed} failed, and {needs_review} need review. "
+                f"Top semantic finding: {prototype_reasoning_preview[0]}"
             )
         return (
             f"I found {total} matching {document_type}. "
@@ -291,3 +305,62 @@ Workflow summary:
         except Exception as exc:
             logger.warning("Falling back to deterministic summary: %s", exc)
             return self._fallback_summary(summary_input)
+
+    def compare_prototype_documents(
+        self,
+        *,
+        generated_text: str,
+        prototype_text: str,
+        validation_context: dict[str, Any],
+        fallback_result: dict[str, Any],
+    ) -> dict[str, Any]:
+        prompt = f"""
+Return strict JSON only.
+
+Compare the generated compensation letter against the prototype semantically.
+Use the deterministic validation context as evidence, and focus on material business differences.
+
+Schema:
+{{
+  "status": "aligned|misaligned|needs_review",
+  "summary": "...",
+  "issues": ["..."],
+  "severity": "low|medium|high"
+}}
+
+Deterministic validation context:
+{json.dumps(validation_context, ensure_ascii=False)}
+
+Prototype text:
+{prototype_text}
+
+Generated document text:
+{generated_text}
+""".strip()
+
+        if self.settings.is_mock_llm_enabled() or not self._is_real_llm_available():
+            return fallback_result
+
+        try:
+            parsed = self._complete_json(
+                system_prompt="You compare a generated compensation letter against a prototype and return only material semantic mismatches in strict JSON.",
+                user_prompt=prompt,
+            )
+            status = str(parsed.get("status", "")).strip().lower()
+            if status not in {"aligned", "misaligned", "needs_review"}:
+                return fallback_result
+            issues = parsed.get("issues", [])
+            if not isinstance(issues, list):
+                issues = []
+            severity = str(parsed.get("severity", "medium")).strip().lower()
+            if severity not in {"low", "medium", "high"}:
+                severity = "medium"
+            return {
+                "status": status,
+                "summary": str(parsed.get("summary", fallback_result.get("summary", ""))),
+                "issues": [str(item) for item in issues if item],
+                "severity": severity,
+            }
+        except Exception as exc:
+            logger.warning("Falling back to deterministic prototype reasoning: %s", exc)
+            return fallback_result

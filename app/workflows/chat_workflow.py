@@ -7,6 +7,7 @@ from typing import Literal, cast
 from langgraph.graph import END, START, StateGraph
 
 from app.services.chat_llm_service import ChatLLMService
+from app.services.prototype_reasoning_service import reason_about_prototype_match
 from app.services.chat_validation_service import build_listing_result, validate_document_record
 from app.services.document_context_service import load_document_context
 from app.services.document_resolver_service import load_reference_data, locate_generated_documents
@@ -153,6 +154,54 @@ def validate_documents_node(state: ChatWorkflowState) -> ChatWorkflowState:
     return cast(ChatWorkflowState, {**state, "validation_results": results, "results": results})
 
 
+def prototype_reasoning_node(state: ChatWorkflowState) -> ChatWorkflowState:
+    documents = state.get("documents", [])
+    validation_results = state.get("validation_results", [])
+    document_by_name = {str(item.get("generated_document", "")): item for item in documents}
+
+    enriched_results: list[dict[str, Any]] = []
+    prototype_reasoning_results: list[dict[str, Any]] = []
+
+    for result in validation_results:
+        document_name = str(result.get("generated_document", ""))
+        document_record = document_by_name.get(document_name, {})
+        reasoning = reason_about_prototype_match(
+            document_record=document_record,
+            validation_result=result,
+            llm_service=llm_service,
+        )
+        enriched = {**result, "prototype_reasoning": reasoning}
+        if reasoning.get("issues"):
+            enriched["issues"] = list(result.get("issues", [])) + [str(item) for item in reasoning.get("issues", []) if item]
+            enriched["top_semantic_mismatch"] = str(reasoning.get("issues", [])[0])
+        if reasoning.get("summary"):
+            enriched["prototype_reasoning_summary"] = str(reasoning.get("summary"))
+            enriched["semantic_comparison_summary"] = str(reasoning.get("summary"))
+        if reasoning.get("status") == "misaligned" and enriched.get("status") == "passed":
+            enriched["status"] = "failed"
+        elif reasoning.get("status") == "needs_review" and enriched.get("status") == "passed":
+            enriched["status"] = "needs_review"
+
+        enriched_results.append(enriched)
+        prototype_reasoning_results.append(
+            {
+                "generated_document": document_name,
+                "employee_name": result.get("employee_name", ""),
+                **reasoning,
+            }
+        )
+
+    return cast(
+        ChatWorkflowState,
+        {
+            **state,
+            "validation_results": enriched_results,
+            "prototype_reasoning_results": prototype_reasoning_results,
+            "results": enriched_results,
+        },
+    )
+
+
 def summarize_results_node(state: ChatWorkflowState) -> ChatWorkflowState:
     if state.get("status") == "error":
         answer = state.get("error", "An unknown error occurred while processing the request.")
@@ -183,6 +232,9 @@ def summarize_results_node(state: ChatWorkflowState) -> ChatWorkflowState:
             for item in results[:5]
         ],
         "notes": state.get("notes", []),
+        "prototype_reasoning_preview": [
+            str(item.get("summary", "")) for item in state.get("prototype_reasoning_results", [])[:3] if item.get("summary")
+        ],
         "logo_validation_note": (
             "Logo validation currently resolves the expected department logo file and checks local availability; "
             "it does not perform true visual logo comparison."
@@ -209,6 +261,12 @@ def route_after_extract(state: ChatWorkflowState) -> Literal["validate_documents
     return "validate_documents"
 
 
+def route_after_validate(state: ChatWorkflowState) -> Literal["prototype_reasoning", "summarize_results"]:
+    if not state.get("validation_results"):
+        return "summarize_results"
+    return "prototype_reasoning"
+
+
 def build_chat_graph():
     graph = StateGraph(ChatWorkflowState)
     graph.add_node("parse_intent", parse_intent_node)
@@ -217,6 +275,7 @@ def build_chat_graph():
     graph.add_node("locate_generated_documents", locate_generated_documents_node)
     graph.add_node("extract_document_content", extract_document_content_node)
     graph.add_node("validate_documents", validate_documents_node)
+    graph.add_node("prototype_reasoning", prototype_reasoning_node)
     graph.add_node("summarize_results", summarize_results_node)
 
     graph.add_edge(START, "parse_intent")
@@ -233,7 +292,12 @@ def build_chat_graph():
         route_after_extract,
         {"validate_documents": "validate_documents", "summarize_results": "summarize_results"},
     )
-    graph.add_edge("validate_documents", "summarize_results")
+    graph.add_conditional_edges(
+        "validate_documents",
+        route_after_validate,
+        {"prototype_reasoning": "prototype_reasoning", "summarize_results": "summarize_results"},
+    )
+    graph.add_edge("prototype_reasoning", "summarize_results")
     graph.add_edge("summarize_results", END)
     return graph.compile()
 
@@ -254,6 +318,7 @@ def run_chat_workflow(user_message: str) -> ChatWorkflowState:
         "prototype_mapping": {},
         "logo_mappings": {},
         "validation_results": [],
+        "prototype_reasoning_results": [],
         "answer": "",
         "results": [],
         "status": "pending",

@@ -45,6 +45,7 @@ class ChatWorkflowState(TypedDict, total=False):
     prototype_mapping: dict[str, str]
     logo_mappings: dict[str, str]
     validation_results: list[dict[str, Any]]
+    prototype_reasoning_results: list[dict[str, Any]]
     answer: str
     results: list[dict[str, Any]]
     status: str
