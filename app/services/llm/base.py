@@ -8,6 +8,14 @@ from typing import Any
 
 class LLMServiceBase(ABC):
     @abstractmethod
+    async def extract_claims(
+        self,
+        document_text: str,
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        raise NotImplementedError
+
+    @abstractmethod
     async def analyze_document(
         self,
         instruction: str,

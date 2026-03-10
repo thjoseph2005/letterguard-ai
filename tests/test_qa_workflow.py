@@ -57,5 +57,7 @@ def test_qa_workflow_smoke(tmp_path: Path) -> None:
     )
 
     assert state.get("planner_result", {}).get("status") == "pass"
+    assert state.get("document_text")
+    assert state.get("claim_extraction_result", {}).get("status") in {"success", "needs_review", "skipped"}
     assert state.get("decision_result", {}).get("final_status") in {"PASS", "FAIL", "NEEDS_REVIEW"}
     assert "decision_result" in state

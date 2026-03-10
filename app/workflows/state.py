@@ -20,11 +20,14 @@ class QAWorkflowState(TypedDict, total=False):
     instruction: str
     document_text: str
     metadata: dict[str, Any]
+    document_context: dict[str, Any]
     planner_result: dict[str, Any]
     qa_result: dict[str, Any]
+    claim_extraction_result: dict[str, Any]
     data_validation_result: dict[str, Any]
     template_result: dict[str, Any]
     logo_result: dict[str, Any]
+    evidence_review_result: dict[str, Any]
     decision_result: dict[str, Any]
     review_result: dict[str, Any] | None
     errors: list[str]

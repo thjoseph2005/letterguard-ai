@@ -21,6 +21,12 @@ def explain_qa_result(result: dict[str, Any]) -> str:
         if missing_sections:
             issues.append("template comparison detected missing required sections")
 
+    evidence_review = result.get("evidence_review_result", {})
+    if isinstance(evidence_review, dict):
+        for issue in evidence_review.get("issues", [])[:1]:
+            if isinstance(issue, dict) and issue.get("description"):
+                issues.append(str(issue["description"]))
+
     if final_status == "PASS":
         return "The letter passed all current QA checks."
     if final_status == "FAIL":

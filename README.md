@@ -259,6 +259,38 @@ Milestone 6 introduces a local deterministic LangGraph workflow that runs all ma
 pytest tests/test_decision_agent.py tests/test_qa_workflow.py -q
 ```
 
+## Target Architecture (Phase 1 Hybrid Agentic QA)
+
+The repo is now moving toward a hybrid agentic architecture instead of a purely deterministic QA pipeline.
+
+### Phase 1 Design
+1. `planner` verifies required inputs and resolves working paths.
+2. `document_context` loads extracted text, metadata, and page context from JSON.
+3. `llm_review` remains available for direct instruction-driven document QA.
+4. `claim_extraction` produces evidence-backed document claims.
+   - Uses Azure OpenAI when configured
+   - Falls back to deterministic extraction when Azure is unavailable
+5. `data_validation` checks extracted/generated content against employee source-of-truth data.
+6. `template` compares the letter against the mapped prototype.
+7. `logo` performs the current branding placeholder check.
+8. `evidence_review` synthesizes document text plus prior agent outputs into an evidence-based QA review.
+   - Uses Azure OpenAI when configured
+   - Degrades safely to `skipped` when Azure is unavailable
+9. `decision` combines deterministic and evidence-based results into `PASS`, `FAIL`, or `NEEDS_REVIEW`.
+10. `review` writes the manual-review summary when escalation is needed.
+
+### Key Principles
+- Deterministic checks remain the guardrails for exact fields and critical mismatches.
+- LLM agents are evidence-based and schema-constrained.
+- Missing LLM configuration should not break the local workflow.
+- Intermediate agent outputs are persisted in the final QA result to improve auditability.
+
+### Near-Term Next Steps
+- Add retrieval over policies and prototype libraries instead of local file-only matching.
+- Add contradiction analysis across agent outputs.
+- Add vision-capable branding checks for logos and layout.
+- Add benchmark/evaluation fixtures for prompt and workflow regression testing.
+
 ## Chat Interface (Deterministic, Local)
 
 Milestone chat support adds a command-style interface that interprets user instructions and runs existing QA services/workflows.

@@ -32,11 +32,18 @@ def run_letterguard_workflow_for_file(file_name: str) -> dict[str, Any]:
             "component_status",
             {
                 "planner": "needs_review",
+                "claim_extraction": "skipped",
                 "data_validation": "needs_review",
                 "template_comparison": "needs_review",
                 "logo_validation": "needs_review",
+                "evidence_review": "skipped",
             },
         ),
+        "claim_extraction_result": state.get("claim_extraction_result"),
+        "data_validation_result": state.get("data_validation_result"),
+        "template_result": state.get("template_result"),
+        "logo_result": state.get("logo_result"),
+        "evidence_review_result": state.get("evidence_review_result"),
         "review": state.get("review_result"),
         "summary": decision.get("summary", "Workflow completed."),
     }

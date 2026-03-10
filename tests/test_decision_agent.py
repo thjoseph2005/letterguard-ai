@@ -5,9 +5,11 @@ def test_decision_agent_all_pass() -> None:
     result = make_final_decision(
         file_name="E001_letter.pdf",
         planner_result={"status": "pass", "summary": "Planner ok."},
+        claim_extraction_result={"status": "success", "summary": "Claims extracted."},
         data_validation_result={"status": "pass", "summary": "Data validation ok."},
         template_result={"status": "pass", "summary": "Template ok."},
         logo_result={"status": "pass", "summary": "Logo ok."},
+        evidence_review_result={"status": "pass", "summary": "Evidence review ok."},
     )
     assert result["final_status"] == "PASS"
 
@@ -16,9 +18,11 @@ def test_decision_agent_one_failure() -> None:
     result = make_final_decision(
         file_name="E001_letter.pdf",
         planner_result={"status": "pass", "summary": "Planner ok."},
+        claim_extraction_result={"status": "success", "summary": "Claims extracted."},
         data_validation_result={"status": "fail", "summary": "Data mismatch."},
         template_result={"status": "pass", "summary": "Template ok."},
         logo_result={"status": "pass", "summary": "Logo ok."},
+        evidence_review_result={"status": "skipped", "summary": "LLM skipped."},
     )
     assert result["final_status"] == "FAIL"
 
@@ -27,8 +31,23 @@ def test_decision_agent_needs_review() -> None:
     result = make_final_decision(
         file_name="E001_letter.pdf",
         planner_result={"status": "needs_review", "summary": "Missing optional input."},
+        claim_extraction_result={"status": "skipped", "summary": "Claims skipped."},
         data_validation_result={"status": "pass", "summary": "Data validation ok."},
         template_result={"status": "pass", "summary": "Template ok."},
         logo_result={"status": "pass", "summary": "Logo ok."},
+        evidence_review_result={"status": "skipped", "summary": "LLM skipped."},
     )
     assert result["final_status"] == "NEEDS_REVIEW"
+
+
+def test_decision_agent_evidence_review_failure() -> None:
+    result = make_final_decision(
+        file_name="E001_letter.pdf",
+        planner_result={"status": "pass", "summary": "Planner ok."},
+        claim_extraction_result={"status": "success", "summary": "Claims extracted."},
+        data_validation_result={"status": "pass", "summary": "Data validation ok."},
+        template_result={"status": "pass", "summary": "Template ok."},
+        logo_result={"status": "pass", "summary": "Logo ok."},
+        evidence_review_result={"status": "fail", "summary": "Evidence review found contradiction."},
+    )
+    assert result["final_status"] == "FAIL"

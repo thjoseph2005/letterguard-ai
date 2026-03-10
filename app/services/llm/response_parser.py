@@ -8,7 +8,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from app.models.qa_models import QAResult
+from app.models.qa_models import ClaimExtractionResult, QAResult
 
 
 def _strip_code_fences(raw: str) -> str:
@@ -29,5 +29,20 @@ def parse_qa_result_json(raw_content: str) -> dict[str, Any]:
         model = QAResult.model_validate(parsed)
     except ValidationError as exc:
         raise ValueError(f"LLM response does not match QAResult schema: {exc}") from exc
+
+    return model.model_dump()
+
+
+def parse_claim_extraction_json(raw_content: str) -> dict[str, Any]:
+    cleaned = _strip_code_fences(raw_content)
+    try:
+        parsed = json.loads(cleaned)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"LLM claim extraction response is not valid JSON: {exc}") from exc
+
+    try:
+        model = ClaimExtractionResult.model_validate(parsed)
+    except ValidationError as exc:
+        raise ValueError(f"LLM claim extraction response does not match schema: {exc}") from exc
 
     return model.model_dump()
